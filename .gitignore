@@ -1,0 +1,12 @@
+# Created by venv; see https://docs.python.org/3/library/venv.html
+*__pycache__/
+.venv/
+*env 1
+atualizacao_vtex/results/
+create_sheet/cotacoes/
+create_sheet/results/
+create_sheet2/results/
+senders/
+separacao_intelipost/results/
+upload_intelipost/
+upload_vtex/
