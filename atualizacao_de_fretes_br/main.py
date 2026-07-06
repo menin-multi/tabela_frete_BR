@@ -9,6 +9,8 @@ from logging_utils import configure_logging
 
 load_dotenv()
 MAIN_DIR = Path(os.getenv('MAIN_DIR'))
+intelipost_dir = MAIN_DIR.parent / "intelipost_add_value"
+
 logger = configure_logging(__name__)
 print = logger.info
 
@@ -45,6 +47,9 @@ print("Enviando arquivos por email")
 subprocess.run([sys.executable, MAIN_DIR / "email_sender.py"], check=True)
 print("+ TABELAS DE EMAIL ENVIADAS +")
 
+print("separando grupos 1 e 2 - intelipost")
+subprocess.run([sys.executable, intelipost_dir / "main.py"], check=True)
+print("+ GRUPOS SEPARADOS +")
 
 elapsed_time = time.time() - start_time
 hours = int(elapsed_time // 3600)

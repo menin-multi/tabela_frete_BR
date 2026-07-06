@@ -503,7 +503,7 @@ def optimized_main() -> None:
 						ab3.fill = FILL_AC_AG
 
 				# formatações contábeis e percentuais
-				col_contabeis = (1, 13, 15, 19, 20, 21, 22)  # índices para colunas (2,14,16,...)
+				col_contabeis = (1, 13, 15, 18, 19, 20, 21, 22)  # índices para colunas (2,14,16,...)
 				for ci in col_contabeis:
 					if ci < len(row):
 						cell = row[ci]
