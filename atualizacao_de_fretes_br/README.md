@@ -29,6 +29,10 @@ Automacao em Python para cotacao, consolidacao, formatacao e envio dos arquivos 
 3. `create_sheet\cotacoes`,
 4. `\senders`,
 5. `\separacao_intelipost\results`.
+6. `intelipost_add_value\grupo1\results`,
+7. `intelipost_add_value\grupo1\separacao_intelipost`,
+8. `intelipost_add_value\grupo2\results`,
+9. `intelipost_add_value\grupo2\separacao_intelipost`,
 
 Executar a partir da raiz do projeto:
 

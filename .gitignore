@@ -2,11 +2,15 @@
 *__pycache__/
 .venv/
 *env 1
-atualizacao_vtex/results/
-create_sheet/cotacoes/
-create_sheet/results/
-create_sheet2/results/
-senders/
-separacao_intelipost/results/
-upload_intelipost/
-upload_vtex/
+atualizacao_de_fretes_br/atualizacao_vtex/results/
+atualizacao_de_fretes_br/create_sheet/cotacoes/
+atualizacao_de_fretes_br/create_sheet/results/
+atualizacao_de_fretes_br/create_sheet2/results/
+atualizacao_de_fretes_br/senders/
+atualizacao_de_fretes_br/separacao_intelipost/results/
+atualizacao_de_fretes_br/upload_intelipost/
+atualizacao_de_fretes_br/upload_vtex/
+intelipost_add_value/grupo1/results
+intelipost_add_value/grupo2/results
+intelipost_add_value/grupo1/separacao_intelipost
+intelipost_add_value/grupo2/separacao_intelipost
