@@ -374,7 +374,7 @@ if __name__ == "__main__":
         caminho_arquivo = max(candidatos, key=lambda p: p.stat().st_mtime)
     else:
         caminho_arquivo = results_dir / 'TABELA_INTELIPOST.xlsx'
-    caminho_arquivo_complementar = comp_dir / 'separacao_intelipost' / 'TDAS_consolidado.xlsx'
+    caminho_arquivo_complementar = comp_dir / "atualizacao_de_fretes_br" / 'separacao_intelipost' / 'TDAS_consolidado.xlsx'
     nome_worksheet = "Sheet"
     nome_worksheet_saida = "Planilha1"
     coluna_filtro = "UF"
