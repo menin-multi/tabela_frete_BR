@@ -1,11 +1,13 @@
 import os
 import glob
 import math
+from pathlib import Path
 import pandas as pd
 from openpyxl import Workbook
 
+
 # ---------------- CONFIGURAÇÕES ----------------
-FATOR_FIXO = 0.43  # <-- ajuste manualmente este valor conforme necessário
+FATOR_FIXO = 0.32  # <-- ajuste manualmente este valor conforme necessário
 
 PESO_MAP = {
     "10":10,
@@ -39,11 +41,10 @@ PESO_MAP = {
 
 COLUNAS_ALVO = list(PESO_MAP.keys())
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PASTA_ORIGEM = os.path.normpath(
-    os.path.join(BASE_DIR, "..", "..", "atualizacao_de_fretes_br", "create_sheet", "results")
-)
-PASTA_DESTINO = os.path.join(BASE_DIR, "results")
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+
+PASTA_ORIGEM = BASE_DIR / "create_sheet" / "results"
+PASTA_DESTINO = Path(__file__).resolve().parent / "results"
 # ------------------------------------------------
 
 

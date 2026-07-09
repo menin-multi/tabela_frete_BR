@@ -23,17 +23,6 @@ Automacao em Python para cotacao, consolidacao, formatacao e envio dos arquivos 
 
 ## Execucao
 
-- Apagar os dados das pastas:
-1. `atualizacao_vtex\results\quote_results`
-2. `atualizacao_vtex\quote_results\precificacao_br`,
-3. `create_sheet\cotacoes`,
-4. `\senders`,
-5. `\separacao_intelipost\results`.
-6. `intelipost_add_value\grupo1\results`,
-7. `intelipost_add_value\grupo1\separacao_intelipost`,
-8. `intelipost_add_value\grupo2\results`,
-9. `intelipost_add_value\grupo2\separacao_intelipost`,
-
 Executar a partir da raiz do projeto:
 
 ```bash

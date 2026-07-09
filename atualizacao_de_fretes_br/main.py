@@ -9,7 +9,6 @@ from logging_utils import configure_logging
 
 load_dotenv()
 MAIN_DIR = Path(os.getenv('MAIN_DIR'))
-intelipost_dir = MAIN_DIR.parent / "intelipost_add_value"
 
 logger = configure_logging(__name__)
 print = logger.info
@@ -28,6 +27,11 @@ subprocess.run([sys.executable, MAIN_DIR / 'create_sheet' / 'create.py'], check=
 print("+ TABELAS DE FRETE CRIADAS +")
 
 
+print("separando arquivos intelipost")
+subprocess.run([sys.executable, MAIN_DIR / "separacao_intelipost" / "main.py"], check=True)
+print("+ TABELAS DE INTELIPOST SEPARADAS +")
+
+
 print("criando a tabela de fretes 2 (com fórmulas)")
 subprocess.run([sys.executable, MAIN_DIR / 'create_sheet2' / 'main.py'], check=True)
 print("+ TABELAS DE FRETE (FÓRMULAS) CRIADAS +")
@@ -36,20 +40,11 @@ print("+ TABELAS DE FRETE (FÓRMULAS) CRIADAS +")
 print("Criando tabela de fretes VTEX")
 subprocess.run([sys.executable, MAIN_DIR / 'atualizacao_vtex' / 'main.py'], check=True)
 print("+ TABELAS DE FRETE VTEX CRIADAS +")
-
-
-print("separando arquivos intelipost")
-subprocess.run([sys.executable, MAIN_DIR / "separacao_intelipost" / "atualizar_tabela.py"], check=True)
-print("+ TABELAS DE INTELIPOST SEPARADAS +")
 ######################################################################################################################
 
 print("Enviando arquivos por email")
 subprocess.run([sys.executable, MAIN_DIR / "email_sender.py"], check=True)
 print("+ TABELAS DE EMAIL ENVIADAS +")
-
-print("separando grupos 1 e 2 - intelipost")
-subprocess.run([sys.executable, intelipost_dir / "main.py"], check=True)
-print("+ GRUPOS SEPARADOS +")
 
 elapsed_time = time.time() - start_time
 hours = int(elapsed_time // 3600)

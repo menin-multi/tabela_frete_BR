@@ -1,11 +1,12 @@
 from datetime import datetime
 from pathlib import Path
-from datetime import datetime
 from math import ceil
 import re
 from time import time
 from copy import copy
 import sys
+import os
+import glob
 
 from openpyxl import load_workbook
 from openpyxl.formatting.rule import FormulaRule
@@ -50,22 +51,12 @@ BORDER_PADRAO = Border(left=THIN_SIDE, right=THIN_SIDE, top=THIN_SIDE, bottom=TH
 ALINHAMENTO_CENTRO = Alignment(horizontal="center", vertical="center")
 
 
-def _localizar_arquivo_gerado(base_dir: Path) -> Path:
-	mes_ano_atual = datetime.now().strftime("%m-%Y")
-	data_atual = datetime.now().strftime("%d-%m-%Y")
-	arquivo_atual = base_dir / "results" / mes_ano_atual / f"TABELA_DE_FRETE_{data_atual}.xlsx"
-	if arquivo_atual.exists():
-		return arquivo_atual
-
-	arquivos_disponiveis = [
-		arquivo
-		for arquivo in base_dir.rglob("TABELA_DE_FRETE_*.xlsx")
-		if arquivo.is_file()
-	]
-	if not arquivos_disponiveis:
-		raise FileNotFoundError(f"Arquivo não encontrado: {arquivo_atual}")
-
-	return max(arquivos_disponiveis, key=lambda arquivo: arquivo.stat().st_mtime)
+def encontrar_xlsx_mais_recente(pasta_base):
+    padrao = os.path.join(pasta_base, "**", "TABELA_DE_FRETE*.xlsx")
+    arquivos = glob.glob(padrao, recursive=True)
+    if not arquivos:
+        raise FileNotFoundError(f"Nenhum arquivo TABELA_DE_FRETE*.xlsx encontrado em {pasta_base}")
+    return max(arquivos, key=os.path.getmtime)
 
 
 def _aplicar_preenchimento_coluna(worksheet, coluna: int, fill: PatternFill, start_row: int = 3) -> None:
@@ -101,24 +92,26 @@ def largura_colunas(worksheet) -> None:
 		"N": 14,
 		"O": 14,
 		"P": 15.43,
-		"Q": 11.86,
-		"R": 20.14,
-		"S": 12.3,
-		"T": 15,
-		"U": 12,
-		"V": 14,
+		"Q": 15.43,
+		"R": 15.43,
+		"S": 11.86,
+		"T": 20.14,
+		"U": 12.3,
+		"V": 15,
 		"W": 12,
-		"X": 11.30,
-		"Y": 24,
-		"Z": 30.71,
-		"AA": 14.14,
-		"AB": 9,
-		"AC": 0.6,
-		"AD": 11.57,
-		"AE": 5.71,
-		"AF": 13.57,
-		"AG": 30.71,
-		"AH": 7.43,
+		"X": 14,
+		"Y": 12,
+		"Z": 11.30,
+		"AA": 24,
+		"AB": 30.71,
+		"AC": 14.14,
+		"AD": 9,
+		"AE": 0.6,
+		"AF": 11.57,
+		"AG": 5.71,
+		"AH": 13.57,
+		"AI": 30.71,
+		"AJ": 7.43,
 	}
 
 	for coluna, largura in larguras.items():
@@ -262,23 +255,6 @@ def _calcular_valor_frete_comercial_atual(worksheet, linha: int, lookup_percentu
 	return ceil((float(valor_u) + (float(valor_u) * float(valor_z))) / 10.0) * 10.0 - 0.01
 
 
-def _calcular_valores_condicionais(worksheet, linha: int, lookup_percentuais: dict[str, float], valor_aa3: float | None) -> tuple[float | None, float | None]:
-	valor_p = _calcular_valor_frete_comercial_atual(worksheet, linha, lookup_percentuais)
-	valor_t_formula = worksheet.cell(row=linha, column=20).value
-	valor_t_base = _extrair_base_frete_custo(valor_t_formula)
-	if isinstance(valor_t_base, (int, float)) and isinstance(valor_aa3, (int, float)):
-		valor_t = float(valor_t_base) + float(valor_aa3)
-	else:
-		valor_t = None
-
-	valor_n = None
-	valor_o = None
-	if isinstance(valor_p, (int, float)) and isinstance(valor_t, (int, float)) and valor_t != 0:
-		valor_n = float(valor_p) - float(valor_t)
-		valor_o = float(valor_p) / float(valor_t) - 1
-
-	return valor_n, valor_o
-
 
 def formatacao_tipos_texto(worksheet) -> None:
 	formato_contabil = '_(* R$ #,##0.00_);_(* (R$ #,##0.00);_(* "-"??_);_(@_)'
@@ -370,41 +346,10 @@ def _ajustar_cabecalhos_e_colunas_destaque(worksheet) -> None:
 			cell.font = fonte
 
 
-def main() -> None:
-	start_time = time()
-	arquivo_saida = _localizar_arquivo_gerado(BASE_DIR)
-	workbook = load_workbook(arquivo_saida)
-	workbook_valores = load_workbook(arquivo_saida, data_only=True)
-	try:
-		worksheet = workbook[NOME_ABA]
-		worksheet_valores = workbook_valores[NOME_ABA]
-		largura_colunas(worksheet)
-		cores_cabeçalhos(worksheet)
-		cores_range_peso(worksheet)
-		cores_fretes(worksheet)
-		cores_coluna_ab(worksheet)
-		cores_ac_ag(worksheet)
-		formatacao_letras(worksheet)
-		formatacao_tipos_texto(worksheet)
-		_ajustar_cabecalhos_e_colunas_destaque(worksheet)
-		cores_vendas(worksheet)
-		formatacao_condicional_no(worksheet, worksheet_valores)
-		workbook.save(arquivo_saida)
-	finally:
-		workbook.close()
-		workbook_valores.close()
-		
-
-	elapsed_time = time() - start_time
-	minutes = int(elapsed_time // 60)
-	seconds = int(elapsed_time % 60)
-	print(f"Tempo total de execução: {minutes}m e {seconds}s")
-
-
 def optimized_main() -> None:
 	start_time = time()
 	print("Formatando planilha de visualização (formulas)")
-	arquivo_saida = _localizar_arquivo_gerado(BASE_DIR)
+	arquivo_saida = encontrar_xlsx_mais_recente(BASE_DIR)
 	workbook = load_workbook(arquivo_saida)
 	workbook_valores = load_workbook(arquivo_saida, data_only=True)
 	try:
@@ -419,11 +364,11 @@ def optimized_main() -> None:
 
 		ultima_linha = 2
 		for r in range(max_row, 1, -1):
-			if worksheet.cell(row=r, column=27).value is not None:
+			if worksheet.cell(row=r, column=29).value is not None:
 				ultima_linha = r
 				break
 		for r in range(2, ultima_linha + 1):
-			c = worksheet.cell(row=r, column=29)
+			c = worksheet.cell(row=r, column=31)
 			c.fill = FILL_PRETO
 			c.border = BORDER_PADRAO
 
@@ -479,7 +424,7 @@ def optimized_main() -> None:
 					texto = str(c9.value).strip()
 					fill = mapa_cores.get(texto)
 					if fill is not None:
-						for ci in range(0, 27):
+						for ci in range(0, 29):
 							if ci < len(row):
 								cel = row[ci]
 								if cel.value is not None:
@@ -488,22 +433,22 @@ def optimized_main() -> None:
 									cel.alignment = ALINHAMENTO_CENTRO
 
 				# AD..AH (colunas 30..34 => índices 29..33) e AB3 (col28 index 27)
-				for ci in range(29, 34):
+				for ci in range(31, 36):
 					if ci < len(row):
 						cell = row[ci]
 						if cell.value is not None:
 							cell.fill = FILL_AC_AG
 							cell.border = BORDER_PADRAO
 
-				if row_idx == 3 and 27 < len(row):
-					ab3 = row[27]
+				if row_idx == 3 and 29 < len(row):
+					ab3 = row[29]
 					if ab3.value is not None:
 						ab3.value = _converter_para_numero(ab3.value)
 						ab3.number_format = formato_contabil
 						ab3.fill = FILL_AC_AG
 
 				# formatações contábeis e percentuais
-				col_contabeis = (1, 13, 15, 18, 19, 20, 21, 22)  # índices para colunas (2,14,16,...)
+				col_contabeis = (1, 13, 15,16,17, 20, 21, 22, 23, 24)
 				for ci in col_contabeis:
 					if ci < len(row):
 						cell = row[ci]
@@ -514,7 +459,7 @@ def optimized_main() -> None:
 							cell.border = BORDER_PADRAO
 							cell.alignment = ALINHAMENTO_CENTRO
 
-				for ci in (14, 23):  # (15, 24)
+				for ci in (14, 25):  # (15, 24)
 					if ci < len(row):
 						cell = row[ci]
 						if cell.value is not None:
@@ -524,7 +469,7 @@ def optimized_main() -> None:
 							cell.border = BORDER_PADRAO
 							cell.alignment = ALINHAMENTO_CENTRO
 
-				for ci in (26, 33):  # (27, 34)
+				for ci in (28, 35):  # (27, 34)
 					if ci < len(row):
 						cell = row[ci]
 						if cell.value is not None:

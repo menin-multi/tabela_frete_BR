@@ -105,6 +105,63 @@ def _carregar_linhas_planilha(base_dir: str, sheet_name: str) -> tuple[tuple, ..
     finally:
         workbook.close()
 
+def _localizar_ultimo_arquivo_intelipost(grupo_dir: Path) -> Path | None:
+    if not grupo_dir.exists():
+        return None
+    arquivos = [a for a in grupo_dir.glob("TABELA_INTELIPOST_*.xlsx") if a.is_file()]
+    if not arquivos:
+        return None
+    return max(arquivos, key=lambda a: a.stat().st_mtime)
+
+
+def carregar_preco_atual_intelipost(grupo_dir: Path) -> tuple[dict[str, float], Path | None]:
+    """
+    Lê a planilha de origem (CEP DE na coluna G, pesos a partir da coluna H)
+    e retorna um dict {"CEPNORM-PESO": preco}.
+    """
+    arquivo = _localizar_ultimo_arquivo_intelipost(grupo_dir)
+    if arquivo is None:
+        return {}, None
+
+    workbook = load_workbook(arquivo, data_only=True, read_only=True)
+    try:
+        planilha = workbook[workbook.sheetnames[0]]
+        linhas = list(planilha.iter_rows(values_only=True))
+    finally:
+        workbook.close()
+
+    if not linhas:
+        return {}, arquivo
+
+    header = linhas[0]
+    cep_idx = 5 
+    pesos_por_indice: dict[int, int] = {}
+    for i in range(7, len(header)):
+        valor_header = header[i]
+        if valor_header is None:
+            continue
+        texto = str(valor_header).strip().replace(",", ".")
+        try:
+            pesos_por_indice[i] = int(float(texto))
+        except ValueError:
+            continue
+
+    lookup: dict[str, float] = {}
+    for linha in linhas[1:]:
+        if len(linha) <= cep_idx:
+            continue
+        cep_norm = normalizar_cep(linha[cep_idx])
+        if not cep_norm:
+            continue
+        for indice_coluna, peso in pesos_por_indice.items():
+            if indice_coluna >= len(linha):
+                continue
+            valor = linha[indice_coluna]
+            if valor is None:
+                continue
+            lookup[f"{cep_norm}-{peso}"] = valor
+
+    return lookup, arquivo
 
 def carregar_base_cidades(base_dir: Path) -> dict[str, str]:
     linhas = _carregar_linhas_planilha(str(_resolver_diretorio_dados(base_dir)), "cidades")
@@ -442,13 +499,13 @@ def _exportar_tabela_frete_xlsx(
         worksheet = workbook_xlsx.add_worksheet("TABELA DE FRETE")
         worksheet.write_row(0, 0, [None] * len(headers))
         worksheet.write_row(1, 0, headers)
-        worksheet.write("AB2", "Adicional Custo")
-        worksheet.write("AD2", "REGIÃO")
-        worksheet.write("AE2", "UF")
-        worksheet.write("AF2", "LOCALIDADE")
-        worksheet.write("AG2", "REGIÃO + UF + LOCALIDADE")
-        worksheet.write("AH2", "% FRETE")
-        worksheet.write("AB3", ac3_valor)
+        worksheet.write("AD2", "Adicional Custo")
+        worksheet.write("AF2", "REGIÃO")
+        worksheet.write("AG2", "UF")
+        worksheet.write("AH2", "LOCALIDADE")
+        worksheet.write("AI2", "REGIÃO + UF + LOCALIDADE")
+        worksheet.write("AJ2", "% FRETE")
+        worksheet.write("AD3", ac3_valor)
         aux_registros = []
         if aux_frete is not None and not aux_frete.empty:
             aux_frete = aux_frete.astype(object).where(pd.notna(aux_frete), None)
@@ -461,7 +518,7 @@ def _exportar_tabela_frete_xlsx(
             if indice < len(resultado_registros):
                 worksheet.write_row(linha_excel, 0, resultado_registros[indice])
             if indice < len(aux_registros):
-                worksheet.write_row(linha_excel, 29, aux_registros[indice])
+                worksheet.write_row(linha_excel, 31, aux_registros[indice])
 
         
     finally:
@@ -700,6 +757,8 @@ def tabela_frete(base_rodrigo_df: pd.DataFrame, base_venda: dict, base_cidades_d
         "FRETE COMERCIAL X FRETE REAL (R$)",
         "FRETE COMERCIAL X FRETE REAL (%)",
         "FRETE COMERCIAL ATUAL",
+        "FRETE ATUAL - GRUPO 1",
+        "FRETE ATUAL - GRUPO 2",
         "CEP DE + PESO POR",
         "CIDADE + PESO POR",
         coluna_custo_antigo,
@@ -781,6 +840,20 @@ def tabela_frete(base_rodrigo_df: pd.DataFrame, base_venda: dict, base_cidades_d
         cep_de_chave + "-" +peso_por_chave
     )
 
+    grupo1_dir = ROOT_DIR / "separacao_intelipost" / "intelipost_add_value" / "grupo1" / "results"
+    grupo2_dir = ROOT_DIR / "separacao_intelipost" / "intelipost_add_value" / "grupo2" / "results"
+    lookup_grupo1, arquivo_grupo1 = carregar_preco_atual_intelipost(grupo1_dir)
+    lookup_grupo2, arquivo_grupo2 = carregar_preco_atual_intelipost(grupo2_dir)
+
+    df["FRETE ATUAL - GRUPO 1"] = df["CEP DE + PESO POR"].map(lookup_grupo1)
+    df["FRETE ATUAL - GRUPO 2"] = df["CEP DE + PESO POR"].map(lookup_grupo2)
+
+    sem_match_g1 = df["CEP DE + PESO POR"].notna().sum() - df["FRETE ATUAL - GRUPO 1"].notna().sum()
+    sem_match_g2 = df["CEP DE + PESO POR"].notna().sum() - df["FRETE ATUAL - GRUPO 2"].notna().sum()
+    print(f"FRETE ATUAL - GRUPO 1: {sem_match_g1} linha(s) sem correspondência")
+    print(f"FRETE ATUAL - GRUPO 2: {sem_match_g2} linha(s) sem correspondência")
+
+
     base_rodrigo_lookup = (
         base_rodrigo_df[
             ["CEP_PESO_KEY", "VALOR_TRANSPORTADOR"]
@@ -823,6 +896,8 @@ def tabela_frete(base_rodrigo_df: pd.DataFrame, base_venda: dict, base_cidades_d
         )
         .set_index("CEP_PESO_KEY")["TRANSPORTADOR"]
     )
+
+
     frete_df = pd.DataFrame(list(base_frete.items()), columns=["REGIAO_UF_LOCALIDADE", "ADICIONAL_FRETE"])
     df["REGIAO_UF_LOCALIDADE"] = (
         df["REGIAO"].fillna("").astype(str) + " - " + df["UF"].fillna("").astype(str) + " - " + df["LOCALIDADE"].fillna("").astype(str)
@@ -891,6 +966,8 @@ def tabela_frete(base_rodrigo_df: pd.DataFrame, base_venda: dict, base_cidades_d
         "FRETE COMERCIAL X FRETE REAL (R$)": df["FRETE COMERCIAL X FRETE REAL (R$)"],
         "FRETE COMERCIAL X FRETE REAL (%)": df["FRETE COMERCIAL X FRETE REAL (%)"],
         "FRETE COMERCIAL ATUAL": df["FRETE COMERCIAL ATUAL"],
+        "FRETE ATUAL - GRUPO 1": df["FRETE ATUAL - GRUPO 1"],
+        "FRETE ATUAL - GRUPO 2": df["FRETE ATUAL - GRUPO 2"],
         "CEP DE + PESO POR": df["CEP DE + PESO POR"],
         "CIDADE + PESO POR": df["CIDADE + PESO POR"],
         coluna_custo_antigo: df[coluna_custo_antigo],
@@ -938,9 +1015,11 @@ def tabela_frete(base_rodrigo_df: pd.DataFrame, base_venda: dict, base_cidades_d
         "FRETE COMERCIAL X FRETE REAL (R$)",
         "FRETE COMERCIAL X FRETE REAL (%)",
         "FRETE COMERCIAL ATUAL",
+        "FRETE ATUAL - GRUPO 1",
+        "FRETE ATUAL - GRUPO 2",
         coluna_custo_antigo,
         coluna_frete_antigo,
-        f"FRETE CUSTO ATUAL",
+        "FRETE CUSTO ATUAL",
         "CUSTO MÉDIO / RANGE DE PESO",
         "DIF. FRETE CUSTO R$",
         "DIFERENÇA %",
@@ -959,7 +1038,7 @@ def tabela_frete(base_rodrigo_df: pd.DataFrame, base_venda: dict, base_cidades_d
 
     resultado_xlsx = resultado.copy().astype(object)
     resultado_xlsx["FRETE CUSTO ATUAL"] = [
-        f"={valor}+$AB$3" if pd.notna(valor) else None
+        f"={valor}+$AD$3" if pd.notna(valor) else None
         for valor in pd.to_numeric(df["VALOR_TRANSPORTADOR_BASE_RODRIGO"], errors="coerce")
     ]
     resultado_xlsx["__ESPACO_AB"] = None
@@ -968,27 +1047,27 @@ def tabela_frete(base_rodrigo_df: pd.DataFrame, base_venda: dict, base_cidades_d
 
     linhas_excel = [_linha_excel(int(indice)) for indice in resultado_xlsx.index]
     resultado_xlsx["% CUSTO FRETE"] = [
-        f"=XLOOKUP(Z{linha},AG:AG,AH:AH)"
+        f"=XLOOKUP(AB{linha},AI:AI,AJ:AJ)"
         for linha in linhas_excel
     ]
     resultado_xlsx["FRETE COMERCIAL X FRETE REAL (R$)"] = [
-        f"=P{linha}-U{linha}"
+        f"=P{linha}-W{linha}"
         for linha in linhas_excel
     ]
     resultado_xlsx["FRETE COMERCIAL X FRETE REAL (%)"] = [
-        f"=P{linha}/U{linha}-1"
+        f"=P{linha}/W{linha}-1"
         for linha in linhas_excel
     ]
     resultado_xlsx["FRETE COMERCIAL ATUAL"] = [
-        f"=ROUNDUP(V{linha}+(V{linha}*AA{linha}),-1)-0.01"
+        f"=ROUNDUP(X{linha}+(X{linha}*AC{linha}),-1)-0.01"
         for linha in linhas_excel
     ]
     resultado_xlsx["DIF. FRETE CUSTO R$"] = [
-        f"=S{linha}-U{linha}"
+        f"=U{linha}-W{linha}"
         for linha in linhas_excel
     ]
     resultado_xlsx["DIFERENÇA %"] = [
-        f"=U{linha}/S{linha}-1"
+        f"=W{linha}/U{linha}-1"
         for linha in linhas_excel
     ]
 
