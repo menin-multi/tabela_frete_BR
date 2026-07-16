@@ -51,6 +51,8 @@ base_rodrigo = resolve_env_path('BASE_RODRIGO', MAIN_DIR)
 xlsx_dir = resolve_env_path('XLSX_DIR', MAIN_DIR)
 #SEPARACAO_INTELIPOST#
 intelipost_dir = resolve_env_path('INTELIPOST_DIR', MAIN_DIR)
+grupo1 = resolve_env_path('GRUPO1', MAIN_DIR)
+grupo2 = resolve_env_path('GRUPO2', MAIN_DIR)
 
 
 username = os.getenv("WEBMAIL_LOGIN")
@@ -114,7 +116,7 @@ if hora < 12:
 elif 12 <= hora < 18:
 	periodo = "Boa tarde"
 else:	periodo = "Boa noite"
-corpo = f"{periodo}, pessoal! Segue a cotação de frete BR.\n\nArquivos enviados:\n- Precificação Intelipost e VTEX\n- Tabela de frete com fórmulas\n- Cotações VTEX\n- Base_rodrigo.\n- Arquivo com erros de cotação.\n\nEmail enviado automaticamente."
+corpo = f"{periodo}, pessoal! Segue a cotação de frete BR.\n\nArquivos enviados:\n- Precificação Intelipost e VTEX\n- Tabela de frete com fórmulas\n- Cotações VTEX\n- Base_rodrigo.\n- Arquivo com erros de cotação.\n\nOs arquivos devem ser extraídos com 7zip.\n\nEmail enviado automaticamente."
 
 def zip_senders():
 	senders_dir = MAIN_DIR / "senders"
@@ -158,6 +160,8 @@ def zip_senders():
 
 	zip_folder(vtex_dir, f"precificacao_vtex.zip")
 	zip_folder(intelipost_dir, f"precificacao_intelipost.zip")
+	zip_folder(grupo1, f"grupo1.zip")
+	zip_folder(grupo2, f"grupo2.zip")
 	zip_latest_file(quote_results_vtex, f"cotacoes_vtex.zip")
 	zip_latest_file(xlsx_dir, f"tabela_frete(formulas).zip")
 	zip_latest_file(base_rodrigo, f"base_rodrigo.zip", patterns=("BASE_RODRIGO_*.csv", "BASE_RODRIGO_*.xlsx"))
@@ -359,6 +363,8 @@ def email_send(driver, remetentes, cc, assunto, corpo):
 				MAIN_DIR / "senders" / "base_rodrigo.zip",
 				MAIN_DIR / "senders" / "precificacao_vtex.zip",
 				MAIN_DIR / "senders" / "precificacao_intelipost.zip",
+				MAIN_DIR / "senders" / "grupo1.zip",
+				MAIN_DIR / "senders" / "grupo2.zip",
 				MAIN_DIR / "senders" / "cotacoes_vtex.zip",
 				MAIN_DIR / "senders" / "erros cotação vtex e intelipost.zip"
 			]
