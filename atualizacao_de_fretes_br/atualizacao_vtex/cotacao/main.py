@@ -13,8 +13,11 @@ chdir(str(root_directory))
 INPUT_FILE = root_directory / 'cotacao' / "cep_cotacao.xlsx"
 PRIORITY_FILE = root_directory / 'cotacao' / "prioridade_estados.xlsx"
 
+# configuração de data
+dia_mes = datetime.now().strftime("%d-%m")
+
 # Base do nome (vai gerar um por UF)
-OUTPUT_DIR = root_directory.parent / "atualizacao_vtex" / "results" / "quote_results"
+OUTPUT_DIR = root_directory.parent / "atualizacao_vtex" / "results" / "quote_results" / dia_mes
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 def process_orders():
     # --- Lê dados principais

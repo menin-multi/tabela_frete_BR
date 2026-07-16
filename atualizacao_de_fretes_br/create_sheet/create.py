@@ -19,6 +19,8 @@ from logging_utils import configure_logging
 logger = configure_logging(__name__)
 print = logger.info
 
+# configuração de data
+dia_mes = datetime.now().strftime("%d-%m")
 
 def identificar_faixa_de_peso(peso) -> int | None:
     if peso is None or peso == "":
@@ -414,7 +416,7 @@ def _carregar_nome_coluna_frete_antigo(base_dir: Path) -> str:
 def base_rodrigo(workbook_saida: Workbook, base_cidades: dict) -> pd.DataFrame:
     print("Processando arquivos de cotação")
     base_dir = Path(__file__).resolve().parent
-    cotacoes_dir = base_dir / "cotacoes"
+    cotacoes_dir = base_dir / "cotacoes" / dia_mes
     worksheet_name = "BASE RODRIGO"
     out_headers = [
         "UF",

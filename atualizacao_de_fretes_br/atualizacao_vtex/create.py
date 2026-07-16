@@ -14,6 +14,9 @@ from logging_utils import configure_logging
 logger = configure_logging(__name__)
 print = logger.info
 
+# configuração de data
+dia_mes = datetime.now().strftime("%d-%m")
+
 COLUNAS_ORIGEM = [
     "CEP DE", "CEP ATÉ", "UF+CIDADE",
     "10", "20", "30", "40", "50", "60", "70", "80", "90", "100",
@@ -105,7 +108,7 @@ def _salvar_erros(erros_df: pd.DataFrame) -> None:
 
 def _carregar_cotacoes(base_dir: Optional[Path] = None) -> tuple[pd.DataFrame, pd.DataFrame]:
     base_dir = Path(base_dir) if base_dir is not None else MAIN_DIR
-    quote_dir = base_dir / "atualizacao_vtex" / "results" / "quote_results"
+    quote_dir = base_dir / "atualizacao_vtex" / "results" / "quote_results" / dia_mes
     if not quote_dir.exists():
         raise FileNotFoundError(f"Diretório de resultados não encontrado: {quote_dir}")
     arquivos_quote = [

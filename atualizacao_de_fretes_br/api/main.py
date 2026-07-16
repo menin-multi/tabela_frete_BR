@@ -13,8 +13,11 @@ chdir(str(root_directory))
 INPUT_FILE = "cep_cotacao_comercial.xlsx"
 PRIORITY_FILE = "prioridade_estados.xlsx"
 
+# configuração de data
+dia_mes = datetime.now().strftime("%d-%m")
+
 # Base do nome (vai gerar um por UF)
-OUTPUT_DIR = root_directory.parent / "create_sheet" / "cotacoes"
+OUTPUT_DIR = root_directory.parent / "create_sheet" / "cotacoes" / dia_mes
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 def process_orders():
